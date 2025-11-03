@@ -7,6 +7,13 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     # Create installation directories
     mkdir -p /opt/geant4/build
     mkdir -p /opt/geant4/install
+    mkdir -p /opt/root/
+
+    # Download and install ROOT
+    cd /opt/root
+    wget https://root.cern/download/root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
+    tar -xzvf root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
+    source /opt/root/root/bin/thisroot.sh
 
     # Download and install Geant4
     cd /opt/geant4
@@ -41,6 +48,7 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
 %files
 
 %environment
+    source /opt/root/root/bin/thisroot.sh
     source /opt/geant4/install/bin/geant4.sh
     PATH="/opt/geant4/install/bin:${PATH}"
     G4INSTALL="/opt/geant4/install"
