@@ -6,6 +6,8 @@ From: almalinux:9
 
 %post
 
+# Define locale
+    localedef -i en_US -f UTF-8 en_US.UTF-8
 
 # Install development tools and dependencies & enable EPEL and update base packages
     set -e
@@ -44,7 +46,9 @@ From: almalinux:9
         libXmu-devel \
         libXi-devel \
         freeglut-devel
-        
+
+# Needed for ROOT:
+    dnf install -y xxhash-libs
 
 # X11 fonts and server utilities
     dnf install -y \
