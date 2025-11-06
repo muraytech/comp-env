@@ -6,9 +6,6 @@ From: almalinux:9
 
 %post
 
-# Define locale
-    localedef -i en_US -f UTF-8 en_US.UTF-8
-
 # Install development tools and dependencies & enable EPEL and update base packages
     set -e
     dnf install -y epel-release
