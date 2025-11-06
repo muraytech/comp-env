@@ -80,7 +80,7 @@ From: almalinux:9
     make -j$(nproc)
     make install
 
-    # Make Python3.12 default
+    # Make Python 3.12 default
     ln -s /opt/python/bin/python3 /usr/local/bin/python3
     ln -s /opt/python/bin/pip3 /usr/local/bin/pip3
 
