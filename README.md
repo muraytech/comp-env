@@ -25,7 +25,7 @@ If you do not have a pre-existing Singularity image, you need to build it:
 singularity build --fakeroot lpa_base.simg lpa_base.singularity
 singularity build lpa.simg lpa.singularity
 ```
-Currently, the lpa_base used for lpa uses the lpa_base coming from GHCR, though you can easily change it to use your local build.
+Currently, the `lpa_base` used for lpa uses the `lpa_base` coming from GHCR, though you can easily change it to use your local build.
 
 ### 1.2 Download the pre-built image:
 
