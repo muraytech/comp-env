@@ -50,6 +50,10 @@ From: almalinux:9
 # Needed for ROOT:
     dnf install -y xxhash-libs
 
+# Install locales
+    dnf install -y glibc-locale-source glibc-langpack-en && \
+        localedef -i en_US -f UTF-8 en_US.UTF-8
+
 # X11 fonts and server utilities
     dnf install -y \
         xorg-x11-fonts-misc \

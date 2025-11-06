@@ -48,6 +48,8 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
 %files
 
 %environment
+    LANG=en_US.UTF-8
+    LC_ALL=en_US.UTF-8
     source /opt/root/root/bin/thisroot.sh
     source /opt/geant4/install/bin/geant4.sh
     PATH="/opt/geant4/install/bin:${PATH}"
