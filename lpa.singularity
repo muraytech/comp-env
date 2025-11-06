@@ -45,6 +45,10 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     rm -f /root/*.pkg.tar*
     rm -f /root/*.tar.gz 
 
+    echo 'if [ -f /etc/environment ]; then set -a; source /etc/environment; set +a; fi' >> /etc/bash.bashrc
+    echo 'export LANG=en_US.UTF-8' >> /etc/bash.bashrc
+    echo 'export LC_ALL=en_US.UTF-8' >> /etc/bash.bashrc
+
 %files
 
 %environment

@@ -1,5 +1,5 @@
 # LPA computational environment (lpa-comp-env)
-![Geant4](https://img.shields.io/badge/geant4-v11.3.0-cc9933?style=for-the-badge) ![ROOT](https://img.shields.io/badge/ROOT-v6.36.04-blue?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-v3.12.0-669900?style=for-the-badge)
+![Geant4](https://img.shields.io/badge/geant4-v11.3.0-cc9933?style=for-the-badge) ![ROOT](https://img.shields.io/badge/ROOT-v6.36.04-blue?style=for-the-badge) ![Python](https://img.shields.io/badge/python-v3.12.0-669900?style=for-the-badge&logo=python&logoColor=ffdd54)
  
 This is the repository for setting up computational environment for the LPA project. For this we use [Singularity/Apptainer](https://apptainer.org/). The image is created from the definitions and requirements listed in this repository. Currently there is support for creating the Geant4 simulations and running the analysis in Python.
 
