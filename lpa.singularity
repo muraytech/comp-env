@@ -13,6 +13,8 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     cd /opt/root
     wget https://root.cern/download/root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
     tar -xzvf root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
+    echo /opt/root/lib >> /etc/ld.so.conf
+    ldconfig
     source /opt/root/root/bin/thisroot.sh
 
     # Download and install Geant4
@@ -45,12 +47,18 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     rm -f /root/*.pkg.tar*
     rm -f /root/*.tar.gz 
 
+    cd /opt/root
+    rm -rf root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
+
 %files
 
 %environment
     export LANG=en_US.UTF-8
     export LC_ALL=en_US.UTF-8
     export SHELL=/bin/bash
+    ROOTSYS=/opt/root
+    PATH=$ROOTSYS/bin:$PATH
+    PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
     source /opt/root/root/bin/thisroot.sh
     source /opt/geant4/install/bin/geant4.sh
     PATH="/opt/geant4/install/bin:${PATH}"
