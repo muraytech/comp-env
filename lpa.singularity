@@ -45,15 +45,12 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     rm -f /root/*.pkg.tar*
     rm -f /root/*.tar.gz 
 
-    echo 'if [ -f /etc/environment ]; then set -a; source /etc/environment; set +a; fi' >> /etc/bash.bashrc
-    echo 'export LANG=en_US.UTF-8' >> /etc/bash.bashrc
-    echo 'export LC_ALL=en_US.UTF-8' >> /etc/bash.bashrc
-
 %files
 
 %environment
-    LANG=en_US.UTF-8
-    LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export SHELL=/bin/bash
     source /opt/root/root/bin/thisroot.sh
     source /opt/geant4/install/bin/geant4.sh
     PATH="/opt/geant4/install/bin:${PATH}"
