@@ -59,7 +59,6 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     ROOTSYS=/opt/root
     PATH=$ROOTSYS/bin:$PATH
     PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
-    source /opt/root/root/bin/thisroot.sh
     source /opt/geant4/install/bin/geant4.sh
     PATH="/opt/geant4/install/bin:${PATH}"
     G4INSTALL="/opt/geant4/install"
