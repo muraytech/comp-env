@@ -57,24 +57,24 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     export LANG=en_US.UTF-8
     export LC_ALL=en_US.UTF-8
     export SHELL=/bin/bash
-    ROOTSYS=/opt/root
-    PATH=$ROOTSYS/bin:$PATH
-    PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
+    export ROOTSYS=/opt/root
+    export PATH=$ROOTSYS/bin:$PATH
+    export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
     source /opt/geant4/install/bin/geant4.sh
-    PATH="/opt/geant4/install/bin:${PATH}"
-    G4INSTALL="/opt/geant4/install"
-    G4EXAMPLES="/opt/geant4/install/share/Geant4/examples"
-    G4NEUTRONHPDATA="/opt/geant4/install/share/Geant4/data/G4NDL4.7.1"
-    G4LEDATA="/opt/geant4/install/share/Geant4/data/G4EMLOW8.6.1"
-    G4LEVELGAMMADATA="/opt/geant4/install/share/Geant4/data/PhotonEvaporation6.1"
-    G4RADIOACTIVEDATA="/opt/geant4/install/share/Geant4/data/RadioactiveDecay6.1.2"
-    G4PARTICLEXSDATA="/opt/geant4/install/share/Geant4/data/G4PARTICLEXS4.1"
-    G4PIIDATA="/opt/geant4/install/share/Geant4/data/G4PII1.3"
-    G4REALSURFACEDATA="/opt/geant4/install/share/Geant4/data/RealSurface2.2"
-    G4SAIDXSDATA="/opt/geant4/install/share/Geant4/data/G4SAIDDATA2.0"
-    G4ABLADATA="/opt/geant4/install/share/Geant4/data/G4ABLA3.3"
-    G4INCLDATA="/opt/geant4/install/share/Geant4/data/G4INCL1.2"
-    G4ENSDFSTATEDATA="/opt/geant4/install/share/Geant4/data/G4ENSDFSTATE3.0"
+    export PATH="/opt/geant4/install/bin:${PATH}"
+    export G4INSTALL="/opt/geant4/install"
+    export G4EXAMPLES="/opt/geant4/install/share/Geant4/examples"
+    export G4NEUTRONHPDATA="/opt/geant4/install/share/Geant4/data/G4NDL4.7.1"
+    export G4LEDATA="/opt/geant4/install/share/Geant4/data/G4EMLOW8.6.1"
+    export G4LEVELGAMMADATA="/opt/geant4/install/share/Geant4/data/PhotonEvaporation6.1"
+    export G4RADIOACTIVEDATA="/opt/geant4/install/share/Geant4/data/RadioactiveDecay6.1.2"
+    export G4PARTICLEXSDATA="/opt/geant4/install/share/Geant4/data/G4PARTICLEXS4.1"
+    export G4PIIDATA="/opt/geant4/install/share/Geant4/data/G4PII1.3"
+    export G4REALSURFACEDATA="/opt/geant4/install/share/Geant4/data/RealSurface2.2"
+    export G4SAIDXSDATA="/opt/geant4/install/share/Geant4/data/G4SAIDDATA2.0"
+    export G4ABLADATA="/opt/geant4/install/share/Geant4/data/G4ABLA3.3"
+    export G4INCLDATA="/opt/geant4/install/share/Geant4/data/G4INCL1.2"
+    export G4ENSDFSTATEDATA="/opt/geant4/install/share/Geant4/data/G4ENSDFSTATE3.0"
 
 
 %runscript
