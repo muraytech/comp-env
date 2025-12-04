@@ -1,0 +1,5 @@
+{
+  "remote-sync.connection.host": "quasar",
+  "remote-sync.connection.remotePath": "/home/laurits/mu-ray-tech/com-env",
+  "remote-sync.connection.enabled": true
+}

@@ -60,7 +60,6 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     export ROOTSYS=/opt/root/root
     export PATH=$ROOTSYS/bin:$PATH
     export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
-    . /opt/geant4/install/bin/geant4.sh
     export PATH="/opt/geant4/install/bin:${PATH}"
     export G4INSTALL="/opt/geant4/install"
     export G4EXAMPLES="/opt/geant4/install/share/Geant4/examples"
@@ -75,6 +74,9 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     export G4ABLADATA="/opt/geant4/install/share/Geant4/data/G4ABLA3.3"
     export G4INCLDATA="/opt/geant4/install/share/Geant4/data/G4INCL1.2"
     export G4ENSDFSTATEDATA="/opt/geant4/install/share/Geant4/data/G4ENSDFSTATE3.0"
+    if [ -f /opt/geant4/install/bin/geant4.sh ]; then
+        . /opt/geant4/install/bin/geant4.sh
+    fi
 
 
 %runscript
