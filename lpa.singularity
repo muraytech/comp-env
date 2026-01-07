@@ -2,6 +2,8 @@ Bootstrap: oras
 From: ghcr.io/muraytech/comp-env/lpa_base:latest
 
 %post
+    # Ensure the build script fails on any error for reliable container builds
+    set -e
     export CMAKE_PREFIX_PATH=/usr/lib64/qt5:/usr/lib64/cmake
 
     # Create installation directories
@@ -46,7 +48,7 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     cd /opt/geant4
     rm -rf build geant4-v11.3.0.tar.gz
     rm -f /root/*.pkg.tar*
-    rm -f /root/*.tar.gz 
+    rm -f /root/*.tar.gz
 
     cd /opt/root
     rm -rf root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
@@ -61,6 +63,11 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     export PATH=$ROOTSYS/bin:$PATH
     export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
     export PATH="/opt/geant4/install/bin:${PATH}"
+
+    if [ -f /opt/geant4/install/bin/geant4.sh ]; then
+        source /opt/geant4/install/bin/geant4.sh
+    fi
+
     export G4INSTALL="/opt/geant4/install"
     export G4EXAMPLES="/opt/geant4/install/share/Geant4/examples"
     export G4NEUTRONHPDATA="/opt/geant4/install/share/Geant4/data/G4NDL4.7.1"
@@ -74,9 +81,7 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     export G4ABLADATA="/opt/geant4/install/share/Geant4/data/G4ABLA3.3"
     export G4INCLDATA="/opt/geant4/install/share/Geant4/data/G4INCL1.2"
     export G4ENSDFSTATEDATA="/opt/geant4/install/share/Geant4/data/G4ENSDFSTATE3.0"
-    if [ -f /opt/geant4/install/bin/geant4.sh ]; then
-        . /opt/geant4/install/bin/geant4.sh
-    fi
+
 
 
 %runscript
