@@ -17,6 +17,7 @@ From: almalinux:9
         gcc-gfortran \
         clang \
         clang-tools-extra \
+        clang-tidy \
         valgrind \
         cmake
 
@@ -89,6 +90,7 @@ From: almalinux:9
     python3 -m pip install wheel
     python3 -m pip install -r /opt/py-requirements.txt --ignore-installed
     python3 -m pip install --upgrade numba numpy uproot jupyterlab
+    python3 -m pip install cpp-linter
 
 # Finally update all and remove cache to reduce image size
     dnf update -y
