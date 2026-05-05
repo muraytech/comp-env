@@ -17,7 +17,6 @@ From: almalinux:9
         gcc-gfortran \
         clang \
         clang-tools-extra \
-        clang-tidy \
         valgrind \
         cmake
 
