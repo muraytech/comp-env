@@ -21,8 +21,8 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
 
     # Download and install Geant4
     cd /opt/geant4
-    ### wget https://gitlab.cern.ch/geant4/geant4/-/archive/v11.3.2/geant4-v11.3.2.tar.gz
-    ### tar xzf geant4-v11.3.2.tar.gz
+    ###wget https://gitlab.cern.ch/geant4/geant4/-/archive/v11.3.2/geant4-v11.3.2.tar.gz
+    ###tar xzf geant4-v11.3.2.tar.gz
     git clone git@github.com:muraytech/geant4-mrt.git geant4-v11.3.2 --branch v11.3.2MRT --single-branch 
     cd build
 
