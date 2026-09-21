@@ -35,9 +35,13 @@ jobs:
 
       - name: Diagnose user-namespace availability
         run: |
-          # Purely informational: this step must never fail the job. It records
-          # why an unprivileged `apptainer build` can or cannot work here, so the
-          # next red run can be diagnosed from the log instead of guessed at.
+          # Purely informational: this step must never fail the job.
+          #
+          # Measured on the hosted runner: kernel.apparmor_restrict_unprivileged_userns=1
+          # and no starter-suid is installed, so an unprivileged `apptainer build`
+          # cannot create a mount namespace. That is why the main image is built
+          # under sudo below. Keep this step so the next red run can be diagnosed
+          # from the log instead of guessed at.
           set +e
           echo "## kernel / sysctls"
           uname -a
@@ -53,32 +57,11 @@ jobs:
             && echo "UNPRIV_USERNS=yes" || echo "UNPRIV_USERNS=no"
           exit 0
 
-      - name: Probe which apptainer build path works here
-        run: |
-          # Builds a trivial image both ways and reports which succeeds, so one
-          # branch push settles whether the real build should be unprivileged or
-          # run under sudo. Never fails the job -- it is a measurement, not a gate.
-          set +e
-          cat > /tmp/probe.def <<'DEF'
-          Bootstrap: docker
-          From: busybox:latest
-
-          %post
-              echo "post ran as uid=$(id -u)"
-          DEF
-
-          echo "===== unprivileged: apptainer build ====="
-          apptainer build --force /tmp/probe-unpriv.sif /tmp/probe.def 2>&1 | tail -5
-          echo "PROBE_UNPRIVILEGED=$([ -f /tmp/probe-unpriv.sif ] && echo PASS || echo FAIL)"
-
-          echo "===== root: sudo env apptainer build ====="
-          sudo env HOME="$HOME" \
-              apptainer build --force /tmp/probe-root.sif /tmp/probe.def 2>&1 | tail -5
-          echo "PROBE_SUDO=$([ -f /tmp/probe-root.sif ] && echo PASS || echo FAIL)"
-          exit 0
-
       - name: Authenticate GHCR for Apptainer
-        if: github.ref == 'refs/heads/main'
+        # TEMPORARY (revert before merging): also run on CI_test so the sudo
+        # build can be exercised on a branch. The two `apptainer push`
+        # steps below deliberately stay main-only, so nothing is published.
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/CI_test'
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,7 +107,10 @@ jobs:
           apptainer push lpa_base.simg oras://ghcr.io/${REPO_LC}/lpa_base:latest
 
       - name: Build main image on the GH Action runner
-        if: github.ref == 'refs/heads/main'
+        # TEMPORARY (revert before merging): also run on CI_test so the sudo
+        # build can be exercised on a branch. The two `apptainer push`
+        # steps below deliberately stay main-only, so nothing is published.
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/CI_test'
         env:
           # Optional: set this secret to a PAT/app token with read access when
           # muraytech/geant4-mrt goes private again. Unset is fine while public.
