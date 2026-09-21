@@ -1,15 +1,18 @@
 name: Singularity CI & GHCR
 
 on:
+  # Any branch: which stages actually run is decided per-push from the diff
+  # below, not from the branch name. Publishing to GHCR stays main-only.
   push:
-    branches:
-      - main
     paths:
       - "lpa.singularity"
       - "lpa_base.singularity"
       - "py-requirements.txt"
+      - ".github/workflows/build_image.yml"
 
   pull_request:
+
+  workflow_dispatch:
 
 jobs:
   ci:
@@ -21,22 +24,99 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # need history to diff against the previous commit
 
-      - name: Install Apptainer
+      - name: Decide which stages to rebuild
+        id: changes
         run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo apt-get update
+          # base -> lpa_base.singularity or py-requirements.txt changed
+          #         (py-requirements.txt is %files'd into the base image)
+          # main -> lpa.singularity changed, or the base was rebuilt, since the
+          #         main image is built on top of the base.
+          case "${{ github.event_name }}" in
+            pull_request)
+              BASE_SHA="${{ github.event.pull_request.base.sha }}"
+              HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+              ;;
+            push)
+              BASE_SHA="${{ github.event.before }}"
+              HEAD_SHA="${{ github.sha }}"
+              ;;
+            *)
+              BASE_SHA=""   # workflow_dispatch: no diff available
+              HEAD_SHA="${{ github.sha }}"
+              ;;
+          esac
+
+          # A new branch, a force-push, or a manual run leaves us without a
+          # usable base commit -- rebuild everything rather than guess.
+          if [ -z "$BASE_SHA" ] \
+             || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "No usable base commit; rebuilding every stage."
+            echo "base=true" >> "$GITHUB_OUTPUT"
+            echo "main=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "Changed files:"
+          echo "$CHANGED" | sed 's/^/  /'
+
+          build_base=false
+          build_main=false
+          # `if grep` rather than `grep && x=y`: the latter returns 1 on no-match
+          # and GitHub runs these scripts under `bash -e`, which would abort.
+          if echo "$CHANGED" | grep -qE '^(lpa_base\.singularity|py-requirements\.txt)$'; then
+            build_base=true
+          fi
+          if echo "$CHANGED" | grep -qE '^lpa\.singularity$'; then
+            build_main=true
+          fi
+          if [ "$build_base" = true ]; then
+            build_main=true   # a new base means the main image must follow
+          fi
+
+          echo "base=$build_base" >> "$GITHUB_OUTPUT"
+          echo "main=$build_main" >> "$GITHUB_OUTPUT"
+          echo "=> rebuild base=$build_base, main=$build_main"
 
       - name: Install Apptainer (binary)
+        if: steps.changes.outputs.base == 'true' || steps.changes.outputs.main == 'true'
         run: |
           VERSION=1.3.2
           wget https://github.com/apptainer/apptainer/releases/download/v${VERSION}/apptainer_${VERSION}_amd64.deb
           sudo apt-get update
           sudo apt-get install -y ./apptainer_${VERSION}_amd64.deb
 
+      - name: Diagnose user-namespace availability
+        if: steps.changes.outputs.main == 'true'
+        run: |
+          # Purely informational: this step must never fail the job.
+          #
+          # Measured on the hosted runner: kernel.apparmor_restrict_unprivileged_userns=1
+          # and no starter-suid is installed, so an unprivileged `apptainer build`
+          # cannot create a mount namespace. That is why the main image is built
+          # under sudo below. Keep this step so the next red run can be diagnosed
+          # from the log instead of guessed at.
+          set +e
+          echo "## kernel / sysctls"
+          uname -a
+          sysctl kernel.unprivileged_userns_clone \
+                 kernel.apparmor_restrict_unprivileged_userns \
+                 user.max_user_namespaces 2>&1
+          echo "## subuid/subgid for $(id -un)"
+          grep "^$(id -un):" /etc/subuid /etc/subgid 2>&1
+          echo "## setuid starter present?"
+          ls -l /usr/libexec/apptainer/bin/ /usr/lib/apptainer/bin/ 2>&1
+          echo "## can this user create a user+mount namespace?"
+          unshare --user --map-root-user --mount true 2>&1 \
+            && echo "UNPRIV_USERNS=yes" || echo "UNPRIV_USERNS=no"
+          exit 0
+
       - name: Authenticate GHCR for Apptainer
-        if: github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.base == 'true' || steps.changes.outputs.main == 'true'
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,13 +132,16 @@ jobs:
           EOF
 
       - name: Login to GHCR
+        if: steps.changes.outputs.base == 'true' || steps.changes.outputs.main == 'true'
         run: |
           apptainer registry login \
             --username ${{ github.actor }} \
             --password ${{ secrets.GITHUB_TOKEN }} \
             docker://ghcr.io
 
+      # ---------------------------------------------------------------- stage 1
       - name: Install Sylabs Remote Build Client
+        if: steps.changes.outputs.base == 'true'
         run: |
           VERSION=0.9.20
           URL="https://github.com/sylabs/scs-build-client/releases/download/v${VERSION}/scs-build-client_${VERSION}_linux_amd64.tar.gz"
@@ -68,28 +151,56 @@ jobs:
           sudo chmod +x /usr/local/bin/scs-build
           scs-build version
 
-      - name: Build image remotely on Sylabs Cloud
-        if: github.ref == 'refs/heads/main'
+      - name: Build base image remotely on Sylabs Cloud
+        if: steps.changes.outputs.base == 'true'
         env:
           SYLABS_AUTH_TOKEN: ${{ secrets.SINGULARITY_REMOTE_TOKEN }}
         run: |
           scs-build build lpa_base.singularity lpa_base.simg
 
       - name: Push base Singularity image to GHCR
-        if: github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.base == 'true' && github.ref == 'refs/heads/main'
         run: |
           REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           apptainer push lpa_base.simg oras://ghcr.io/${REPO_LC}/lpa_base:latest
 
-      - name: Build image remotely on GH Action
-        if: github.ref == 'refs/heads/main'
+      # ---------------------------------------------------------------- stage 2
+      - name: Build main image on the GH Action runner
+        if: steps.changes.outputs.main == 'true'
         env:
-          SYLABS_AUTH_TOKEN: ${{ secrets.SINGULARITY_REMOTE_TOKEN }}
+          # Optional: set this secret to a PAT/app token with read access when
+          # muraytech/geant4-mrt goes private again. Unset is fine while public.
+          APPTAINERENV_GEANT4_MRT_TOKEN: ${{ secrets.GEANT4_MRT_TOKEN }}
         run: |
-          apptainer build lpa.simg lpa.singularity
+          # If stage 1 ran, build on top of the base image sitting on this
+          # runner rather than the published one. That way a branch tests its
+          # own base without having to publish it and clobber :latest, and on
+          # main we never race the push we just made.
+          if [ -f lpa_base.simg ]; then
+            echo "Using the base image built in this run."
+            sed -i -e 's|^Bootstrap: oras|Bootstrap: localimage|' \
+                   -e 's|^From: .*|From: lpa_base.simg|' lpa.singularity
+            head -2 lpa.singularity
+          else
+            echo "Stage 1 did not run; using the published base from GHCR."
+          fi
+
+          # Build as root: kernel.apparmor_restrict_unprivileged_userns=1 on the
+          # hosted runner blocks the unprivileged build's mount namespace.
+          # HOME is pinned (rather than `sudo -E`, whose HOME handling depends on
+          # sudoers config) so root reads the ~/.apptainer/oci-auth.json written
+          # above and can pull the oras:// base from GHCR.
+          #
+          # `sudo env VAR=...` rather than `sudo VAR=...`: setting variables
+          # directly on a sudo command line can be refused by sudoers policy,
+          # whereas running /usr/bin/env as the command always works.
+          sudo env HOME="$HOME" \
+                   APPTAINERENV_GEANT4_MRT_TOKEN="${APPTAINERENV_GEANT4_MRT_TOKEN:-}" \
+                   apptainer build lpa.simg lpa.singularity
+          sudo chown "$(id -u):$(id -g)" lpa.simg
 
       - name: Push main Singularity image to GHCR
-        if: github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.main == 'true' && github.ref == 'refs/heads/main'
         run: |
           REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           apptainer push lpa.simg oras://ghcr.io/${REPO_LC}/lpa:latest
