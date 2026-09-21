@@ -1,15 +1,19 @@
 name: Singularity CI & GHCR
 
 on:
+  # Any branch, not just main: the cheap probe steps below are unguarded, so
+  # pushing a branch tells us how the runner behaves without merging anything.
+  # The expensive build/push steps stay gated on `main` via `if:` conditions.
   push:
-    branches:
-      - main
     paths:
       - "lpa.singularity"
       - "lpa_base.singularity"
       - "py-requirements.txt"
+      - ".github/workflows/build_image.yml"
 
   pull_request:
+
+  workflow_dispatch:
 
 jobs:
   ci:
@@ -22,18 +26,56 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Apptainer
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo apt-get update
-
       - name: Install Apptainer (binary)
         run: |
           VERSION=1.3.2
           wget https://github.com/apptainer/apptainer/releases/download/v${VERSION}/apptainer_${VERSION}_amd64.deb
           sudo apt-get update
           sudo apt-get install -y ./apptainer_${VERSION}_amd64.deb
+
+      - name: Diagnose user-namespace availability
+        run: |
+          # Purely informational: this step must never fail the job. It records
+          # why an unprivileged `apptainer build` can or cannot work here, so the
+          # next red run can be diagnosed from the log instead of guessed at.
+          set +e
+          echo "## kernel / sysctls"
+          uname -a
+          sysctl kernel.unprivileged_userns_clone \
+                 kernel.apparmor_restrict_unprivileged_userns \
+                 user.max_user_namespaces 2>&1
+          echo "## subuid/subgid for $(id -un)"
+          grep "^$(id -un):" /etc/subuid /etc/subgid 2>&1
+          echo "## setuid starter present?"
+          ls -l /usr/libexec/apptainer/bin/ /usr/lib/apptainer/bin/ 2>&1
+          echo "## can this user create a user+mount namespace?"
+          unshare --user --map-root-user --mount true 2>&1 \
+            && echo "UNPRIV_USERNS=yes" || echo "UNPRIV_USERNS=no"
+          exit 0
+
+      - name: Probe which apptainer build path works here
+        run: |
+          # Builds a trivial image both ways and reports which succeeds, so one
+          # branch push settles whether the real build should be unprivileged or
+          # run under sudo. Never fails the job -- it is a measurement, not a gate.
+          set +e
+          cat > /tmp/probe.def <<'DEF'
+          Bootstrap: docker
+          From: busybox:latest
+
+          %post
+              echo "post ran as uid=$(id -u)"
+          DEF
+
+          echo "===== unprivileged: apptainer build ====="
+          apptainer build --force /tmp/probe-unpriv.sif /tmp/probe.def 2>&1 | tail -5
+          echo "PROBE_UNPRIVILEGED=$([ -f /tmp/probe-unpriv.sif ] && echo PASS || echo FAIL)"
+
+          echo "===== root: sudo env apptainer build ====="
+          sudo env HOME="$HOME" \
+              apptainer build --force /tmp/probe-root.sif /tmp/probe.def 2>&1 | tail -5
+          echo "PROBE_SUDO=$([ -f /tmp/probe-root.sif ] && echo PASS || echo FAIL)"
+          exit 0
 
       - name: Authenticate GHCR for Apptainer
         if: github.ref == 'refs/heads/main'
@@ -81,12 +123,28 @@ jobs:
           REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           apptainer push lpa_base.simg oras://ghcr.io/${REPO_LC}/lpa_base:latest
 
-      - name: Build image remotely on GH Action
+      - name: Build main image on the GH Action runner
         if: github.ref == 'refs/heads/main'
         env:
-          SYLABS_AUTH_TOKEN: ${{ secrets.SINGULARITY_REMOTE_TOKEN }}
+          # Optional: set this secret to a PAT/app token with read access when
+          # muraytech/geant4-mrt goes private again. Unset is fine while public.
+          APPTAINERENV_GEANT4_MRT_TOKEN: ${{ secrets.GEANT4_MRT_TOKEN }}
         run: |
-          apptainer build lpa.simg lpa.singularity
+          # Build as root. Root can always create the mount namespace, so this
+          # does not depend on whether unprivileged user namespaces are permitted
+          # on the runner -- which is what the previous run failed on.
+          #
+          # HOME is pinned explicitly (rather than relying on `sudo -E`, whose
+          # HOME handling depends on sudoers config) so the build reads the same
+          # ~/.apptainer/oci-auth.json the earlier steps wrote, and can pull the
+          # oras:// base image from GHCR.
+          # `sudo env VAR=...` rather than `sudo VAR=...`: setting variables
+          # directly on a sudo command line can be refused by sudoers policy,
+          # whereas running /usr/bin/env as the command always works.
+          sudo env HOME="$HOME" \
+                   APPTAINERENV_GEANT4_MRT_TOKEN="${APPTAINERENV_GEANT4_MRT_TOKEN:-}" \
+                   apptainer build lpa.simg lpa.singularity
+          sudo chown "$(id -u):$(id -g)" lpa.simg
 
       - name: Push main Singularity image to GHCR
         if: github.ref == 'refs/heads/main'

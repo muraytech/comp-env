@@ -23,7 +23,18 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     cd /opt/geant4
     ###wget https://gitlab.cern.ch/geant4/geant4/-/archive/v11.3.2/geant4-v11.3.2.tar.gz
     ###tar xzf geant4-v11.3.2.tar.gz
-    git clone git@github.com:muraytech/geant4-mrt.git geant4-v11.3.2 --branch v11.3.2MRT --single-branch 
+    # Clone over HTTPS: the build has no SSH agent/key, so git@github.com fails.
+    # If GEANT4_MRT_TOKEN is set (pass it as APPTAINERENV_GEANT4_MRT_TOKEN at
+    # build time), the clone is authenticated and works for a private repo too.
+    if [ -n "${GEANT4_MRT_TOKEN:-}" ]; then
+        GEANT4_MRT_URL="https://x-access-token:${GEANT4_MRT_TOKEN}@github.com/muraytech/geant4-mrt.git"
+    else
+        GEANT4_MRT_URL="https://github.com/muraytech/geant4-mrt.git"
+    fi
+    git clone "$GEANT4_MRT_URL" geant4-v11.3.2 --branch v11.3.2MRT --single-branch
+    # Never leave the token behind in the image's git config
+    git -C geant4-v11.3.2 remote set-url origin https://github.com/muraytech/geant4-mrt.git
+    unset GEANT4_MRT_TOKEN GEANT4_MRT_URL
     cd build
 
    # Configure and build Geant4
