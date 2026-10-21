@@ -13,7 +13,9 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
 
     # Download and install ROOT
     cd /opt/root
-    wget https://root.cern/download/root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
+    # Fetched from the GitHub release: root.cern/download now redirects to a
+    # CERN SSO login page, so wget "succeeds" with an HTML file instead.
+    wget https://github.com/root-project/root/releases/download/v6-36-04/root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
     tar -xzvf root_v6.36.04.Linux-almalinux9.6-x86_64-gcc11.5.tar.gz
     echo /opt/root/root/lib >> /etc/ld.so.conf
     ldconfig
