@@ -1,14 +1,20 @@
-awkward
-boost-histogram
-hydra-core
-matplotlib
-mplhep
-notebook
+# Jupyter 
+jupyterhub==6.0.1
+jupyterlab
+ipykernel
+
+# Analysis
 numpy
 scipy
-h5py
 pandas
-seaborn
-uproot
+h5py
 tables
+uproot
 vector
+boost-histogram
+matplotlib
+mplhep
+seaborn
+
+# Workflow
+hydra-core
