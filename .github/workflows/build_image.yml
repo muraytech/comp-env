@@ -140,23 +140,25 @@ jobs:
             docker://ghcr.io
 
       # ---------------------------------------------------------------- stage 1
-      - name: Install Sylabs Remote Build Client
+      - name: Free disk space for the base build
         if: steps.changes.outputs.base == 'true'
         run: |
-          VERSION=0.9.20
-          URL="https://github.com/sylabs/scs-build-client/releases/download/v${VERSION}/scs-build-client_${VERSION}_linux_amd64.tar.gz"
-          curl -L -o scs-build.tar.gz "$URL"
-          tar -xzf scs-build.tar.gz
-          sudo mv scs-build /usr/local/bin/scs-build
-          sudo chmod +x /usr/local/bin/scs-build
-          scs-build version
+          # The base image (dev tools, Qt, Python built from source) is large,
+          # and apptainer unpacks a full sandbox before squashing it. Drop
+          # preinstalled toolchains we never use to make room.
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /opt/hostedtoolcache/CodeQL
+          df -h /
 
-      - name: Build base image remotely on Sylabs Cloud
+      - name: Build base image on the GH Action runner
         if: steps.changes.outputs.base == 'true'
-        env:
-          SYLABS_AUTH_TOKEN: ${{ secrets.SINGULARITY_REMOTE_TOKEN }}
         run: |
-          scs-build build lpa_base.singularity lpa_base.simg
+          # Built as root for the same reason as the main image below: the
+          # runner blocks unprivileged user namespaces, so --fakeroot is not
+          # available, but passwordless sudo gives us real root instead.
+          sudo env HOME="$HOME" apptainer build lpa_base.simg lpa_base.singularity
+          sudo chown "$(id -u):$(id -g)" lpa_base.simg
 
       - name: Push base Singularity image to GHCR
         if: steps.changes.outputs.base == 'true' && github.ref == 'refs/heads/main'
