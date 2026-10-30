@@ -15,6 +15,7 @@ boost-histogram
 matplotlib
 mplhep
 seaborn
+tqdm
 
 # Workflow
 hydra-core
