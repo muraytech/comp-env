@@ -80,6 +80,8 @@ From: ghcr.io/muraytech/comp-env/lpa_base:latest
     export SHELL=/bin/bash
     export ROOTSYS=/opt/root/root
     export PATH=$ROOTSYS/bin:$PATH
+    # Add path for jupyterhub-singleuser
+    export PATH=/opt/python/bin:$PATH
     export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
     export PATH="/opt/geant4/install/bin:${PATH}"
 
